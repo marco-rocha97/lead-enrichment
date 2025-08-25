@@ -1,0 +1,568 @@
+{
+  "name": "Lead Enrichment",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "SEND US A MESSAGE",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Company Name",
+              "placeholder": "Enter company name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Message",
+              "placeholder": "Enter your message",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "8b8f3336-dc92-42fc-91f3-d5dbb44109ca",
+      "name": "On form submission",
+      "webhookId": "8555349d-984b-4ba4-9a5b-3a2704d24351"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/customsearch/v1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "cx"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json['Company Name'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "891226c7-d9c5-4d4b-8abc-653f4d144399",
+      "name": "Search Company on Google",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "aw4embj3EPv9GZ02",
+          "name": "Google Search"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = item.json;\n\n  // Extrai os links\n  const candidatos = (data.items || [])\n    .map(r => r.link)\n    .filter(link =>\n      !link.includes(\"linkedin.com\") &&\n      !link.includes(\"glassdoor.com\") &&\n      !link.includes(\"zoominfo.com\") &&\n      !link.includes(\"prnewswire.com\") &&\n      !link.includes(\"breezy.hr\") &&\n      !link.includes(\"oliverwyman.com\")\n    );\n\n  let principal = null;\n\n  if (candidatos.length > 0) {\n    // Escolhe o com menos \"/\"\n    principal = candidatos.reduce((prev, curr) =>\n      (curr.split(\"/\").length < prev.split(\"/\").length) ? curr : prev\n    );\n  }\n\n  return {\n    json: {\n      site_principal: principal\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        0
+      ],
+      "id": "169cd37c-57c9-48f9-b34b-45b07f444197",
+      "name": "Extract Company Site"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.linkedin_empresa }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "user-agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
+            },
+            {
+              "name": "referer",
+              "value": "https://www.google.com/"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        592,
+        336
+      ],
+      "id": "0b0de6cf-1ce1-47da-ab48-a653db6f1473",
+      "name": "Scrape Company LinkedIn",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const data = item.json;\n\n  // Busca especificamente por LinkedIn de empresa\n  const linkedinEmpresa = (data.items || [])\n    .find(result => {\n      const link = result.link || '';\n      return link.includes(\"linkedin.com/company/\");\n    });\n\n  return {\n    json: {\n      linkedin_empresa: linkedinEmpresa ? linkedinEmpresa.link : null\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        336
+      ],
+      "id": "9566ed9f-1c0a-478b-a0a4-d8ee9a611973",
+      "name": "Extract Company LinkedIn"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "og_description",
+              "cssSelector": "meta[property=\"og:description\"]",
+              "returnValue": "attribute",
+              "attribute": "content"
+            },
+            {
+              "key": "industry",
+              "cssSelector": "[data-test-id=\"about-us__industry\"] dd"
+            },
+            {
+              "key": "company_size",
+              "cssSelector": "[data-test-id=\"about-us__size\"] dd"
+            },
+            {
+              "key": "headquarters",
+              "cssSelector": "[data-test-id=\"about-us__headquarters\"] dd"
+            },
+            {
+              "key": "organization_type",
+              "cssSelector": "[data-test-id=\"about-us__organizationType\"] dd"
+            },
+            {
+              "key": "founded_on",
+              "cssSelector": "[data-test-id=\"about-us__foundedOn\"] dd"
+            },
+            {
+              "key": "specialties",
+              "cssSelector": "[data-test-id=\"about-us__specialties\"] dd"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        240
+      ],
+      "id": "deb1a240-d0f4-4c34-9c44-a69626a48556",
+      "name": "Extract Company Data"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cca70c58-6a97-433b-b922-dbcc06c8e6e4",
+              "name": "summary",
+              "value": "={{ $json.data.summary }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        0
+      ],
+      "id": "6734c360-7172-44c6-988e-e6686a5d8aa1",
+      "name": "Set Summary"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=client demand:{{ $('On form submission').item.json.Message }}\nsummary:{{ $json.summary }}\norganization description:{{ $json.og_description }}\nindustry:{{ $json.industry }}\ncompany size:{{ $json.company_size }}\nheadqueartes:{{ $json.headquarters }}\norganization type:{{ $json.organization_type }}\nfounded on:{{ $json.founded_on }}\nspecialties:{{ $json.specialties }}\nlinkedin posts:{{ $json.post }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a Strategic Value Consultant AI, an expert in analyzing client profiles and generating high-impact business opportunities. Your mission is to analyze comprehensive client data and generate strategic ideas that maximize value delivery, business impact, and profit potential for an AI agency\n\n## Your Expertise:\n- Strategic business analysis and opportunity identification\n- Data science and AI solution architecture\n- Industry-specific value proposition development\n- ROI optimization and impact maximization\n- Client needs assessment and solution mapping\n\n## Analysis Framework:\nYou will receive detailed client information including their specific demand, company profile, industry context, and social media insights. Use this data to identify strategic opportunities where a company with expertise in data science, analytics, machine learning, and AI can deliver maximum value.\n\n## Your Task:\nAnalyze all provided data comprehensively and generate strategic value delivery ideas. Consider:\n1. **Client's Core Business Model**: How they generate revenue and create value\n2. **Industry Pain Points**: Common challenges in their sector that data/AI can solve\n3. **Organizational Maturity**: Their readiness for different types of solutions\n4. **Cultural Fit**: Based on communication style and company values\n5. **Scalability Potential**: Opportunities for long-term partnership growth\n6. **Competitive Advantage**: How data/AI can differentiate them in their market\n\n## Output Format:\nProvide your response as a structured list, **ordered by potential impact** (highest impact first). For each idea, include:\n\n**[Impact Level: HIGH/MEDIUM] - [Idea Title]**\n- **Description**: Brief explanation of the solution\n- **Business Impact**: Specific benefits and value creation\n- **Implementation Approach**: High-level delivery strategy\n- **Revenue Potential**: Estimated value for both client and AI agency\n- **Timeline**: Rough implementation timeframe\n\n## Strategic Considerations:\n- AI agency strengths: data engineering, analytics, AI, GenAI solutions, data strategy, and migrations\n- Consider the nearshoring model for cost-effective delivery\n- Think about solutions that can become case studies for similar industries\n- Identify opportunities for ongoing partnerships beyond initial projects\n- Focus on measurable ROI and business outcomes\n\n## Quality Standards:\n- Each idea must be specific and actionable\n- Solutions should align with client's industry and organizational context\n- Consider both immediate wins and long-term strategic initiatives\n- Prioritize solutions with clear business value and competitive advantage\n\n## Answer Format:\n- Write in HTML format"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.7,
+      "position": [
+        1264,
+        240
+      ],
+      "id": "18579bd1-20bf-49ba-accd-ab271377cc3c",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        448
+      ],
+      "id": "f0eb14e8-1f1b-41c5-b2aa-fabc662d2d66",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "8UwsWIJ7wzV47Cn4",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rest-us.apitemplate.io/v2/create-pdf-from-html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "filename",
+              "value": "={{ $('On form submission').item.json['Company Name'] }}.pdf"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-KEY",
+              "value": "a5d8MzY3OTE6MzM5Nzk6Z2paVkJQZEdUVUpjZUxMaQ="
+            },
+            {
+              "name": "Content-Type\t",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"body\": {{ JSON.stringify($json.text) }},\n  \"css\": \"<style>.bg{background: red;}</style>\",\n  \"data\": {\n    \"name\": \"This is a title\"\n  },\n  \"settings\": {\n    \"paper_size\": \"A4\",\n    \"orientation\": \"1\",\n    \"header_font_size\": \"9px\",\n    \"margin_top\": \"40\",\n    \"margin_right\": \"10\",\n    \"margin_bottom\": \"40\",\n    \"margin_left\": \"10\",\n    \"print_background\": \"1\",\n    \"displayHeaderFooter\": true,\n    \"custom_header\": \"<style>#header, #footer { padding: 0 !important; }</style><table style=\\\"width: 100%; padding: 0px 5px;margin: 0px!important;font-size: 8px\\\">\\n  <tr>\\n    <td style=\\\"text-align:left; width:30%!important;\\\"><span class=\\\"date\\\"></span></td>\\n    <td style=\\\"text-align:center; width:30%!important;\\\"><span class=\\\"pageNumber\\\"></span></td>\\n    <td style=\\\"text-align:right; width:30%!important;\\\"><span class=\\\"totalPages\\\"></span></td>\\n  </tr>\\n</table>\",\n    \"custom_footer\": \"<style>#header, #footer { padding: 0 !important; }</style><table style=\\\"width: 100%; padding: 0px 5px;margin: 0px!important;font-size: 8px\\\">\\n  <tr>\\n    <td style=\\\"text-align:left; width:30%!important;\\\"><span class=\\\"date\\\"></span></td>\\n    <td style=\\\"text-align:center; width:30%!important;\\\"><span class=\\\"pageNumber\\\"></span></td>\\n    <td style=\\\"text-align:right; width:30%!important;\\\"><span class=\\\"totalPages\\\"></span></td>\\n  </tr>\\n</table>\"\n  }\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1600,
+        240
+      ],
+      "id": "f828130f-561c-4f82-80cf-4e352b35b7b2",
+      "name": "Create PDF"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.download_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        240
+      ],
+      "id": "d7f4fac1-980f-468c-b101-4b04b067c8f5",
+      "name": "Download PDF"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "post",
+              "cssSelector": "[data-test-id=\"main-feed-activity-card__commentary\"]",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        432
+      ],
+      "id": "7ebbeb7b-dbfd-4114-b405-031a00f2bcfc",
+      "name": "Extract Last Posts"
+    },
+    {
+      "parameters": {
+        "sendTo": "marcorocha.mrsd@gmail.com",
+        "subject": "=Your Research on {{ $('On form submission').item.json['Company Name'] }} is ready",
+        "emailType": "text",
+        "message": "=Here is the research on: {{ $('On form submission').item.json['Company Name'] }}\n\nDemand:{{ $('On form submission').item.json.Message }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        2016,
+        240
+      ],
+      "id": "85b8f244-ecde-4eb5-a594-9d35a48dc7d0",
+      "name": "Send Email",
+      "webhookId": "5d4000b9-bb85-4d84-8dd0-7431d76cb5a6",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VZRfNomAEWp3PFwn",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v2/scrape",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpBearerAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"url\": \"{{ $json.site_principal }}\",\n  \"formats\": [\n    \"summary\"\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        592,
+        0
+      ],
+      "id": "4272ce8c-4921-44b1-8f48-254a82deaf74",
+      "name": "Summarize Company Page - Firecrawl",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "9S7yLpPFypwBUYPq",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1056,
+        224
+      ],
+      "id": "4b4e35b5-d0b7-4595-9d13-afa3e70511e2",
+      "name": "Merge Results",
+      "executeOnce": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Search Company on Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search Company on Google": {
+      "main": [
+        [
+          {
+            "node": "Extract Company Site",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Company LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Company Site": {
+      "main": [
+        [
+          {
+            "node": "Summarize Company Page - Firecrawl",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Scrape Company LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Extract Company Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Last Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Company LinkedIn": {
+      "main": [
+        [
+          {
+            "node": "Scrape Company LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Company Data": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Set Summary": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Create PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create PDF": {
+      "main": [
+        [
+          {
+            "node": "Download PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Last Posts": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Summarize Company Page - Firecrawl": {
+      "main": [
+        [
+          {
+            "node": "Set Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e63c3a40-38d0-4d1e-b4fa-d17a8a308e69",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a81e5df00dc731927b91cf5ed9f1aef51217702842d14beb40fec9e545eda11b"
+  },
+  "id": "UM4JvoaIxp76RGXJ",
+  "tags": []
+}
