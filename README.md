@@ -122,7 +122,7 @@ Este workflow é totalmente customizável! Algumas ideias para melhorar:
 - 🎯 **Scoring de Leads**: Adicionar sistema de pontuação automática
 - 📱 **Notificações Slack**: Alertas em tempo real para leads quentes
 - 🤖 **Follow-up Automático**: Sequência de emails personalizados
--    **Dashboard Analytics**: Métricas de conversão e performance
+- 📈 **Dashboard Analytics**: Métricas de conversão e performance
 - 🌐 **Multi-idioma**: Suporte para empresas internacionais
 - 🔍 **Pesquisa Avançada**: Incluir dados de Crunchbase, AngelList
 - 📈 **Análise Competitiva**: Comparação com concorrentes
