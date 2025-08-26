@@ -7,6 +7,17 @@
         "formFields": {
           "values": [
             {
+              "fieldLabel": "Name",
+              "placeholder": "Enter your name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "placeholder": "Enter your emai",
+              "requiredField": true
+            },
+            {
               "fieldLabel": "Company Name",
               "placeholder": "Enter company name",
               "requiredField": true
@@ -86,10 +97,6 @@
             {
               "name": "user-agent",
               "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36"
-            },
-            {
-              "name": "referer",
-              "value": "https://www.google.com/"
             }
           ]
         },
@@ -239,6 +246,8 @@
       "parameters": {
         "method": "POST",
         "url": "https://rest-us.apitemplate.io/v2/create-pdf-from-html",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -251,10 +260,6 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-API-KEY",
-              "value": "insert_your_api"
-            },
             {
               "name": "Content-Type\t",
               "value": "application/json"
@@ -273,7 +278,13 @@
         240
       ],
       "id": "f828130f-561c-4f82-80cf-4e352b35b7b2",
-      "name": "Create PDF"
+      "name": "Create PDF",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FsUqiCH4xYQsL8JR",
+          "name": "Apitemplate.io - PDF"
+        }
+      }
     },
     {
       "parameters": {
@@ -385,6 +396,40 @@
       "id": "4b4e35b5-d0b7-4595-9d13-afa3e70511e2",
       "name": "Merge Results",
       "executeOnce": false
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/customsearch/v1",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "cx"
+            },
+            {
+              "name": "q",
+              "value": "={{ $('On form submission').item.json['Company Name'] }} LinkedIn"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        176,
+        336
+      ],
+      "id": "d96e8250-6206-4fd9-ab9e-f5143f4ebfc6",
+      "name": "Search Company LinkedIn on Google",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "aw4embj3EPv9GZ02",
+          "name": "Google Search"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -409,7 +454,7 @@
             "index": 0
           },
           {
-            "node": "Extract Company LinkedIn",
+            "node": "Search Company LinkedIn on Google",
             "type": "main",
             "index": 0
           }
@@ -552,13 +597,24 @@
           }
         ]
       ]
+    },
+    "Search Company LinkedIn on Google": {
+      "main": [
+        [
+          {
+            "node": "Extract Company LinkedIn",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "e63c3a40-38d0-4d1e-b4fa-d17a8a308e69",
+  "versionId": "e6ed5b3e-370a-458e-a3f7-1bafe82d43bd",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "a81e5df00dc731927b91cf5ed9f1aef51217702842d14beb40fec9e545eda11b"
